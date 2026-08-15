@@ -52,10 +52,10 @@ FunASR/
 - 本机 shell 直连网络通常不通，执行下载/安装类命令前先走代理：
   `export HTTPS_PROXY=http://127.0.0.1:7890 HTTP_PROXY=http://127.0.0.1:7890`
 - 模型下载慢时改用 ModelScope 本地目录；MPS 不稳定就退回 `--device cpu`（CPU 已足够快）。
-- 项目相关个人信息（技术栈、联系方式等）见 `/Users/wuzhuoyi/Documents/notes/private/个人信息/个人技术栈和情况简介.md`。
+- 项目相关个人信息（技术栈、联系方式等）见本机私人笔记（`~/Documents/notes/private/个人信息/个人技术栈和情况简介.md`）。
 
 ## 开发约定
 
 - 保持 `transcribe.py` 为推荐入口：CLI 参数、延迟导入模型、临时 WAV 目录这些结构不要破坏。
 - 输出文件命名与输入同名（`stem`），新增输出格式时同步更新 `render_outputs` 与 README。
-- 远程仓库为私有仓库 `JoeyRedfield/FunASR-personal`，推送前确认不包含隐私音频与笔记。
+- 远程仓库为 `JoeyRedfield/FunASR-personal`，推送前确认不包含隐私音频与笔记。

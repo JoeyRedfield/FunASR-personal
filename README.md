@@ -31,7 +31,7 @@ FunASR/
 > `export HTTPS_PROXY=http://127.0.0.1:7890 HTTP_PROXY=http://127.0.0.1:7890`
 
 ```bash
-cd /Users/wuzhuoyi/Desktop/code/FunASR
+cd ~/Desktop/code/FunASR
 uv venv .venv --python 3.12
 source .venv/bin/activate
 uv pip install -r requirements.txt
