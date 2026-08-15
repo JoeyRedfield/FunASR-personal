@@ -1,0 +1,7 @@
+torch
+torchaudio
+funasr>=1.4.2
+modelscope
+fastapi
+uvicorn
+python-multipart
