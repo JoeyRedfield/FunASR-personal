@@ -104,6 +104,23 @@ curl http://127.0.0.1:8000/v1/audio/transcriptions \
 | 内存峰值 | 约 2～4 GB |
 | 磁盘占用 | 环境约 2 GB + 模型约 2～3 GB |
 
+## 模型缓存
+
+首次运行会自动从 ModelScope 下载模型，默认保存到用户缓存目录（macOS/Linux 为 `~/.cache/modelscope/models/`，本机实际约 2.1 GB）。下载完成后即可全离线使用。
+
+| 模型 | 用途 | 缓存目录 | 大小 |
+|---|---|---|---|
+| paraformer | 识别 + 时间戳 | `iic--speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch` | ~950 MB |
+| fsmn-vad | 语音分段 | `iic--speech_fsmn_vad_zh-cn-16k-common-pytorch` | ~4 MB |
+| ct-punc | 标点恢复 | `iic--punc_ct-transformer_cn-en-common-vocab471067-large` | ~1.1 GB |
+| cam++ | 说话人分离 | `iic--speech_campplus_sv_zh-cn_16k-common` | ~28 MB |
+
+说明：
+
+- 想改缓存位置：设置环境变量 `MODELSCOPE_CACHE=/你的/路径`，之后新模型会下载到新目录（旧缓存不会自动迁移）。
+- 想重下模型：删除对应缓存目录后，下次运行会自动重新下载。
+- 该缓存位于家目录，与项目内的 `models/`（本地模型目录，已 gitignore）不是一回事，两者互不影响。
+
 ## 常见问题
 
 - **为什么用 Python 3.12？** 系统 Python 3.14 与 torch/torchaudio 的 macOS wheel 兼容性有风险，3.12 最稳。

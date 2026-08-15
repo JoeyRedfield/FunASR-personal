@@ -49,6 +49,7 @@ FunASR/
 - 默认用中文交流与写文档。
 - `notes/`、`.venv/`、模型缓存、`__pycache__`、`.DS_Store` 等已在 `.gitignore` 中；**个人录音（如 `*.m4a`）属于隐私数据，不得提交到 git**，新增的大文件应加入 `.gitignore` 而非入库。
 - 需要删除任何文件前，先询问用户。
+- 模型默认缓存在 `~/.cache/modelscope/models/`（本机约 2.1 GB，含 paraformer / fsmn-vad / ct-punc / cam++ 四套模型），与项目内 `models/` 目录不同；想改位置用环境变量 `MODELSCOPE_CACHE`。
 - 本机 shell 直连网络通常不通，执行下载/安装类命令前先走代理：
   `export HTTPS_PROXY=http://127.0.0.1:7890 HTTP_PROXY=http://127.0.0.1:7890`
 - 模型下载慢时改用 ModelScope 本地目录；MPS 不稳定就退回 `--device cpu`（CPU 已足够快）。
