@@ -17,8 +17,11 @@ FunASR/
 ├── .python-version
 ├── scripts/
 │   ├── transcribe.py        # 课堂录音一键转写（推荐入口）
+│   ├── polish_notes.py      # LLM 纠错顺滑 + 结构化笔记
 │   ├── start_api.sh         # 启动 OpenAI 兼容转写 API
 │   └── download_sample.sh   # 下载官方中文样例音频
+├── docs/
+│   └── roadmap.md           # 转写后续方案记录
 ├── samples/                 # 样例音频（首次测试用）
 └── notes/                   # 转写结果默认输出目录
 ```
@@ -78,6 +81,33 @@ python scripts/transcribe.py 课堂录音.m4a --device mps
 ```
 
 脚本会自动用 ffmpeg 把任意格式（m4a/mp3/wav/mp4 等）转成 16 kHz 单声道 WAV，再调用 FunASR。
+
+## 可选：LLM 纠错顺滑 + 结构化笔记
+
+转写得到的是逐句流水账，可用 LLM 做后处理：
+
+- **纠错顺滑**：改正识别错别字/术语错误（如“工案改善”→“提案改善”），删除“呃、嗯、以以”等口头禅
+- **结构化笔记**：生成概述、大纲、核心要点、行动项、专有名词与常见问答
+
+```bash
+python scripts/polish_notes.py notes/体验改善培训内容.json
+```
+
+输出（与输入同名）：
+
+- `notes/<名称>.整理.md`：纠错顺滑后的逐句文本（保留时间戳/说话人）
+- `notes/<名称>.polished.json`：纠错后逐句数据（供后续互动笔记/搜索使用）
+- `notes/<名称>.结构化笔记.md`：结构化课堂笔记
+
+LLM 后端默认本地 Ollama（OpenAI 兼容端点），可用环境变量切换：
+
+```bash
+export LLM_BASE_URL=http://127.0.0.1:11434/v1   # 默认值
+export LLM_MODEL=qwen3:0.6b                      # 默认值，建议用 >=8B 模型
+export LLM_API_KEY=                              # 云端 API 时填写
+```
+
+常用参数：`--limit N` 只试跑前 N 句；`--skip-polish` / `--skip-notes` 跳过某一步；`--segments-per-chunk` 控制每批句子数。完整方案见 [docs/roadmap.md](docs/roadmap.md)。
 
 ## 可选：启动本地转写 API
 

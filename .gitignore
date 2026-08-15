@@ -6,3 +6,4 @@ notes/
 models/
 logs/
 *.m4a
+.env
