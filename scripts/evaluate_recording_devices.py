@@ -693,6 +693,7 @@ def build_asr_command(
         str(output_dir),
         "--device",
         "cpu",
+        "--flat-output",
     ]
 
 
@@ -713,6 +714,7 @@ def build_notes_command(
         *(str(path) for path in inputs),
         "-o",
         str(output_dir / "notes"),
+        "--flat-output",
     ]
 
 

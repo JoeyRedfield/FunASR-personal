@@ -7,7 +7,13 @@ undo/
 archive/
 models/
 logs/
+*.aac
+*.flac
 *.m4a
+*.mp3
+*.mp4
+*.wav
+!samples/asr_example_zh.wav
 .env
 /context.md
 /data1-cli

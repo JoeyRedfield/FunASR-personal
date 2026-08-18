@@ -25,9 +25,10 @@ FunASR/
 │   ├── device-evaluation.md # 手机/平板录音评估操作与评分说明
 │   └── roadmap.md           # 转写后续方案记录
 ├── tests/
-│   └── test_evaluate_recording_devices.py # 设备评估单元与流程测试
+│   ├── test_evaluate_recording_devices.py # 设备评估单元与流程测试
+│   └── test_output_layout.py # 普通转写与笔记输出目录测试
 ├── samples/                 # 样例音频（首次测试用）
-└── notes/                   # 转写结果默认输出目录
+└── notes/                   # 转写结果，按录音文件名前缀分目录
 ```
 
 ## 快速开始
@@ -57,7 +58,7 @@ bash scripts/download_sample.sh
 python scripts/transcribe.py samples/asr_example_zh.wav
 ```
 
-第一次运行会自动从 ModelScope 下载模型（约 2～3 GB），之后全离线。转写结果输出到 `notes/`：
+第一次运行会自动从 ModelScope 下载模型（约 2～3 GB），之后全离线。转写结果输出到 `notes/asr_example_zh/`：
 
 - `asr_example_zh.md`：带时间戳和说话人标签的课堂笔记
 - `asr_example_zh.srt`：字幕文件
@@ -66,9 +67,9 @@ python scripts/transcribe.py samples/asr_example_zh.wav
 ### 3. 转写自己的录音
 
 ```bash
-python scripts/transcribe.py "~/Desktop/课堂录音.m4a"
+python scripts/transcribe.py "$HOME/Desktop/课堂录音.m4a"
 
-# 指定输出目录
+# 指定输出根目录（仍会创建 <录音文件名>/ 子目录）
 python scripts/transcribe.py 课堂录音.m4a -o ~/Documents/课堂笔记
 
 # 批量转写
@@ -84,7 +85,7 @@ python scripts/transcribe.py 课堂录音.m4a --no-spk
 python scripts/transcribe.py 课堂录音.m4a --device mps
 ```
 
-脚本会自动用 ffmpeg 把任意格式（m4a/mp3/wav/mp4 等）转成 16 kHz 单声道 WAV，再调用 FunASR。
+脚本会自动用 ffmpeg 把任意格式（m4a/mp3/wav/mp4 等）转成 16 kHz 单声道 WAV，再调用 FunASR。每个录音的 `.md`、`.srt`、`.json` 会统一写入 `<输出根目录>/<录音文件名>/`，批量转写时不同前缀的录音不会平铺混在一起；同一批次若出现重复前缀，脚本会拒绝执行以避免覆盖。已有集成若必须使用旧的平铺布局，可显式传入 `--flat-output`。
 
 ## 可选：LLM 纠错顺滑 + 结构化笔记
 
@@ -94,14 +95,14 @@ python scripts/transcribe.py 课堂录音.m4a --device mps
 - **结构化笔记**：生成概述、大纲、核心要点、行动项、专有名词与常见问答
 
 ```bash
-python scripts/polish_notes.py notes/体验改善培训内容.json
+python scripts/polish_notes.py notes/体验改善培训内容/体验改善培训内容.json
 ```
 
-输出（与输入同名）：
+输出会与同前缀的转写结果归入一个目录：
 
-- `notes/<名称>.整理.md`：纠错顺滑后的逐句文本（保留时间戳/说话人）
-- `notes/<名称>.polished.json`：纠错后逐句数据（供后续互动笔记/搜索使用）
-- `notes/<名称>.结构化笔记.md`：结构化课堂笔记
+- `notes/<名称>/<名称>.整理.md`：纠错顺滑后的逐句文本（保留时间戳/说话人）
+- `notes/<名称>/<名称>.polished.json`：纠错后逐句数据（供后续互动笔记/搜索使用）
+- `notes/<名称>/<名称>.结构化笔记.md`：结构化课堂笔记
 
 LLM 后端默认本地 Ollama（OpenAI 兼容端点），可用环境变量切换：
 
@@ -125,7 +126,7 @@ python scripts/evaluate_recording_devices.py run-notes
 python scripts/evaluate_recording_devices.py report
 ```
 
-`run-asr` 实际调用本项目推荐入口 `scripts/transcribe.py`，固定使用 CPU、完整的 VAD/标点/说话人模型链路且不设置热词；`run-notes` 实际调用 `scripts/polish_notes.py`，两端共用 `.env` 中的相同 DeepSeek 配置。完整操作与评分说明见 [docs/device-evaluation.md](docs/device-evaluation.md)。
+`run-asr` 实际调用本项目推荐入口 `scripts/transcribe.py`，固定使用 CPU、完整的 VAD/标点/说话人模型链路且不设置热词；`run-notes` 实际调用 `scripts/polish_notes.py`，两端共用相同的 LLM 配置（本机若已配置 `.env`，则使用其中的 DeepSeek 配置）。完整操作与评分说明见 [docs/device-evaluation.md](docs/device-evaluation.md)。
 
 运行设备评估测试：`python -m unittest discover -s tests -v`。
 

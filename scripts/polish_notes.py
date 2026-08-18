@@ -4,10 +4,10 @@
 课堂录音转写后处理：LLM 纠错顺滑 + 结构化笔记
 
 输入：scripts/transcribe.py 产出的 <名称>.json（FunASR 原始结果）
-输出（与输入同名，默认写到 notes/）：
-  <名称>.整理.md         —— 纠错顺滑后的逐句文本（保留时间戳/说话人）
-  <名称>.polished.json   —— 纠错后逐句数据（供后续互动笔记/搜索使用）
-  <名称>.结构化笔记.md    —— 概述/大纲/要点/行动项/专有名词/问答
+输出（默认按输入文件名前缀分目录写到 notes/）：
+  <名称>/<名称>.整理.md         —— 纠错顺滑后的逐句文本（保留时间戳/说话人）
+  <名称>/<名称>.polished.json   —— 纠错后逐句数据（供后续互动笔记/搜索使用）
+  <名称>/<名称>.结构化笔记.md    —— 概述/大纲/要点/行动项/专有名词/问答
 
 LLM 后端默认使用本地 Ollama（OpenAI 兼容端点），可用环境变量切换：
   LLM_BASE_URL   默认 http://127.0.0.1:11434/v1
@@ -15,9 +15,9 @@ LLM 后端默认使用本地 Ollama（OpenAI 兼容端点），可用环境变�
   LLM_API_KEY    本地 Ollama 可留空；云端 API 时填写
 
 用法示例：
-  python scripts/polish_notes.py notes/体验改善培训内容.json
-  python scripts/polish_notes.py notes/x.json --model qwen3:8b
-  python scripts/polish_notes.py notes/x.json --limit 60   # 只处理前 60 句，用于试跑
+  python scripts/polish_notes.py notes/体验改善培训内容/体验改善培训内容.json
+  python scripts/polish_notes.py notes/x/x.json --model qwen3:8b
+  python scripts/polish_notes.py notes/x/x.json --limit 60   # 只处理前 60 句，用于试跑
 """
 
 import argparse
@@ -188,6 +188,23 @@ def render_polished_md(stem: str, segs: list[dict]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def recording_output_dir(base_dir: Path, stem: str, *, flat_output: bool = False) -> Path:
+    """返回单个录音的输出目录。"""
+    return base_dir if flat_output else base_dir / stem
+
+
+def ensure_unique_stems(paths: list[Path]) -> None:
+    """拒绝会写入同一前缀目录的批量输入。"""
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+    for path in paths:
+        if path.stem in seen:
+            duplicates.add(path.stem)
+        seen.add(path.stem)
+    if duplicates:
+        raise ValueError(f"输入文件名前缀重复：{'、'.join(sorted(duplicates))}")
+
+
 def main() -> None:
     load_dotenv()
     parser = argparse.ArgumentParser(description="LLM 纠错顺滑 + 结构化笔记")
@@ -203,16 +220,28 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=0, help="只处理前 N 句（试跑用）")
     parser.add_argument("--skip-polish", action="store_true", help="跳过纠错，直接整理")
     parser.add_argument("--skip-notes", action="store_true", help="跳过结构化笔记")
+    parser.add_argument(
+        "--flat-output",
+        action="store_true",
+        help="直接写入输出根目录（供已有集成兼容；默认按录音文件名前缀分目录）",
+    )
     args = parser.parse_args()
+    try:
+        ensure_unique_stems([path for path in args.files if path.exists()])
+    except ValueError as error:
+        parser.error(str(error))
 
     llm = LLMClient(args.api_base, args.model, args.api_key)
-    args.out_dir.mkdir(parents=True, exist_ok=True)
 
     for path in args.files:
         if not path.exists():
             print(f"跳过不存在的文件：{path}", file=sys.stderr)
             continue
         stem = path.stem
+        output_dir = recording_output_dir(
+            args.out_dir, stem, flat_output=args.flat_output
+        )
+        output_dir.mkdir(parents=True, exist_ok=True)
         print(f"读取：{path}")
         segs = load_segments(path)
         if args.limit > 0:
@@ -232,10 +261,10 @@ def main() -> None:
             segs = polished
             print("纠错顺滑完成。")
 
-        (args.out_dir / f"{stem}.整理.md").write_text(
+        (output_dir / f"{stem}.整理.md").write_text(
             render_polished_md(stem, segs), encoding="utf-8"
         )
-        (args.out_dir / f"{stem}.polished.json").write_text(
+        (output_dir / f"{stem}.polished.json").write_text(
             json.dumps(
                 {
                     "key": stem,
@@ -248,7 +277,7 @@ def main() -> None:
             ),
             encoding="utf-8",
         )
-        print(f"完成：{args.out_dir / (stem + '.整理.md')}")
+        print(f"完成：{output_dir / (stem + '.整理.md')}")
 
         # ---- 2. 结构化笔记 ----
         if not args.skip_notes:
@@ -260,7 +289,7 @@ def main() -> None:
             note = merge_summaries(
                 llm, summaries, args.max_merge_chars, args.merge_group_size
             )
-            note_path = args.out_dir / f"{stem}.结构化笔记.md"
+            note_path = output_dir / f"{stem}.结构化笔记.md"
             note_path.write_text(note + "\n", encoding="utf-8")
             print(f"完成：{note_path}")
 

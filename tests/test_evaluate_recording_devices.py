@@ -447,7 +447,9 @@ class ManifestShapeTests(unittest.TestCase):
         self.assertIn("--device", asr)
         self.assertIn("cpu", asr)
         self.assertNotIn("--hotword", asr)
+        self.assertIn("--flat-output", asr)
         self.assertEqual(notes[:2], ["python", str(project_root / "scripts/polish_notes.py")])
+        self.assertIn("--flat-output", notes)
         self.assertTrue(any(value.endswith("课__手机.json") for value in notes))
 
     def test_creates_blind_bundle_for_full_course_notes(self) -> None:

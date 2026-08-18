@@ -13,10 +13,10 @@
   python scripts/transcribe.py 录音1.m4a 录音2.wav -o ./notes --hotword "机器学习 20"
   python scripts/transcribe.py 课堂录音.m4a --device mps
 
-输出（与输入同名）：
-  <stem>.md   —— 带时间戳和说话人标签的课堂笔记
-  <stem>.srt  —— 字幕文件
-  <stem>.json —— FunASR 原始结果（时间戳/说话人/分段全文）
+输出（默认按输入文件名前缀分目录）：
+  <output-dir>/<stem>/<stem>.md   —— 带时间戳和说话人标签的课堂笔记
+  <output-dir>/<stem>/<stem>.srt  —— 字幕文件
+  <output-dir>/<stem>/<stem>.json —— FunASR 原始结果（时间戳/说话人/分段全文）
 """
 
 import argparse
@@ -42,6 +42,23 @@ def fmt_srt_ts(ms: float) -> str:
     m, rem = divmod(rem, 60_000)
     s, ms2 = divmod(rem, 1000)
     return f"{h:02d}:{m:02d}:{s:02d},{ms2:03d}"
+
+
+def recording_output_dir(base_dir: Path, stem: str, *, flat_output: bool = False) -> Path:
+    """返回单个录音的输出目录。"""
+    return base_dir if flat_output else base_dir / stem
+
+
+def ensure_unique_stems(paths: list[Path]) -> None:
+    """拒绝会写入同一前缀目录的批量输入。"""
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+    for path in paths:
+        if path.stem in seen:
+            duplicates.add(path.stem)
+        seen.add(path.stem)
+    if duplicates:
+        raise ValueError(f"输入文件名前缀重复：{'、'.join(sorted(duplicates))}")
 
 
 def render_outputs(stem: str, raw: dict, output_dir: Path) -> None:
@@ -92,7 +109,16 @@ def main() -> None:
         action="store_true",
         help="不加载说话人分离模型 cam++，速度快一些",
     )
+    parser.add_argument(
+        "--flat-output",
+        action="store_true",
+        help="直接写入输出根目录（供已有集成兼容；默认按录音文件名前缀分目录）",
+    )
     args = parser.parse_args()
+    try:
+        ensure_unique_stems([path for path in args.audios if path.exists()])
+    except ValueError as error:
+        parser.error(str(error))
 
     from funasr import AutoModel  # 延迟导入，便于先打印帮助信息
 
@@ -108,8 +134,6 @@ def main() -> None:
 
     print(f"加载模型：{model_kwargs}")
     model = AutoModel(**model_kwargs)
-
-    args.output_dir.mkdir(parents=True, exist_ok=True)
     hotword = args.hotword or None
 
     with tempfile.TemporaryDirectory(prefix="funasr_") as tmp:
@@ -118,6 +142,10 @@ def main() -> None:
                 print(f"跳过不存在的文件：{src}", file=sys.stderr)
                 continue
             stem = src.stem
+            output_dir = recording_output_dir(
+                args.output_dir, stem, flat_output=args.flat_output
+            )
+            output_dir.mkdir(parents=True, exist_ok=True)
             wav_path = Path(tmp) / f"{stem}.wav"
             print(f"转换音频：{src} -> 16kHz 单声道 WAV")
             to_wav_16k(src, wav_path)
@@ -129,8 +157,8 @@ def main() -> None:
                 hotword=hotword,
             )
             raw = result[0]
-            render_outputs(stem, raw, args.output_dir)
-            print(f"完成：{args.output_dir / (stem + '.md')}")
+            render_outputs(stem, raw, output_dir)
+            print(f"完成：{output_dir / (stem + '.md')}")
 
 
 if __name__ == "__main__":

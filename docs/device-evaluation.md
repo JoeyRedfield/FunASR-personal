@@ -39,7 +39,7 @@ python scripts/evaluate_recording_devices.py prepare
 - 根据两端语音能量变化计算启动时间偏移；
 - 裁出两端完整的共同录制区间；
 - 把交集分成前、中、后三段，每段选择一个 3 分钟高语音密度窗口；
-- 生成清单、9 个空白人工参考文本和评分模板。
+- 生成清单、每个课程抽样片段对应的空白人工参考文本和评分模板。
 
 默认输出目录为 `notes/device-evaluation/`。重要文件包括：
 
@@ -90,8 +90,11 @@ python scripts/evaluate_recording_devices.py run-asr
 ```bash
 python scripts/transcribe.py <全部完整交集和抽样片段> \
   -o notes/device-evaluation/asr \
-  --device cpu
+  --device cpu \
+  --flat-output
 ```
+
+设备评估按 `asr/`、`notes/` 阶段隔离结果，因此显式使用兼容参数 `--flat-output`，继续维持评估清单和续跑逻辑所依赖的平铺文件名；普通转写仍默认按录音前缀分目录。
 
 因此两台设备使用完全相同的 FunASR 链路：
 
@@ -110,7 +113,7 @@ python scripts/transcribe.py <全部完整交集和抽样片段> \
 python scripts/evaluate_recording_devices.py run-notes
 ```
 
-该命令统一调用 `scripts/polish_notes.py`，生成纠错稿和结构化笔记。完成后会把每门课的手机、平板整课笔记随机匿名为 A/B，放入：
+该命令统一调用 `scripts/polish_notes.py --flat-output`，在评估专用的 `notes/` 阶段目录中生成纠错稿和结构化笔记。完成后会把每门课的手机、平板整课笔记随机匿名为 A/B，放入：
 
 ```text
 notes/device-evaluation/blind/<课程>/
