@@ -3,7 +3,12 @@ __pycache__/
 *.pyc
 .DS_Store
 notes/
+undo/
+archive/
 models/
 logs/
 *.m4a
 .env
+/context.md
+/data1-cli
+/data2-tui

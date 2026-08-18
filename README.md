@@ -18,10 +18,14 @@ FunASR/
 ├── scripts/
 │   ├── transcribe.py        # 课堂录音一键转写（推荐入口）
 │   ├── polish_notes.py      # LLM 纠错顺滑 + 结构化笔记
+│   ├── evaluate_recording_devices.py # 手机/平板录音成对评估
 │   ├── start_api.sh         # 启动 OpenAI 兼容转写 API
 │   └── download_sample.sh   # 下载官方中文样例音频
 ├── docs/
+│   ├── device-evaluation.md # 手机/平板录音评估操作与评分说明
 │   └── roadmap.md           # 转写后续方案记录
+├── tests/
+│   └── test_evaluate_recording_devices.py # 设备评估单元与流程测试
 ├── samples/                 # 样例音频（首次测试用）
 └── notes/                   # 转写结果默认输出目录
 ```
@@ -108,6 +112,22 @@ export LLM_API_KEY=                              # 云端 API 时填写
 ```
 
 常用参数：`--limit N` 只试跑前 N 句；`--skip-polish` / `--skip-notes` 跳过某一步；`--segments-per-chunk` 控制每批句子数。完整方案见 [docs/roadmap.md](docs/roadmap.md)。
+
+## 手机与平板录音评估
+
+把同一课程的同步录音命名为 `<课程>-手机.wav` 和 `<课程>-平板.m4a`，放进 `undo/`，然后分阶段运行：
+
+```bash
+python scripts/evaluate_recording_devices.py prepare
+python scripts/evaluate_recording_devices.py run-asr
+python scripts/evaluate_recording_devices.py run-notes
+# 填写人工参考文本与 notes/device-evaluation/ratings.json 后：
+python scripts/evaluate_recording_devices.py report
+```
+
+`run-asr` 实际调用本项目推荐入口 `scripts/transcribe.py`，固定使用 CPU、完整的 VAD/标点/说话人模型链路且不设置热词；`run-notes` 实际调用 `scripts/polish_notes.py`，两端共用 `.env` 中的相同 DeepSeek 配置。完整操作与评分说明见 [docs/device-evaluation.md](docs/device-evaluation.md)。
+
+运行设备评估测试：`python -m unittest discover -s tests -v`。
 
 ## 可选：启动本地转写 API
 

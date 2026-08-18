@@ -2,6 +2,7 @@ torch
 torchaudio
 funasr>=1.4.2
 modelscope
+numpy
 fastapi
 uvicorn
 python-multipart
